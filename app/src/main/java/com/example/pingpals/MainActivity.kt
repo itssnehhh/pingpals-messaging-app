@@ -3,83 +3,57 @@ package com.example.pingpals
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.activity.viewModels
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.rememberNavController
+import com.example.pingpals.ui.flow.intro.IntroScreen
+import com.example.pingpals.ui.navigation.AppDestinations
+import com.example.pingpals.ui.navigation.AppNavigator
+import com.example.pingpals.ui.navigation.slideComposable
 import com.example.pingpals.ui.theme.PingPalsTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             PingPalsTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    WelcomeScreen(modifier = Modifier.padding(innerPadding))
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    MainApp(viewModel)
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier) {
-    val backgroundColor by animateColorAsState(
-        targetValue = Color(0xFF87B5F5),
-        animationSpec = tween(durationMillis = 2000)
-    )
+fun MainApp(viewModel: MainViewModel) {
+    val navController = rememberNavController()
+    val state by viewModel.state.collectAsState()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(backgroundColor),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_app_logo),
-                contentDescription = "PingPals Logo",
-                modifier = Modifier
-                    .size(120.dp)
-                    .padding(bottom = 16.dp)
-            )
-            Text(
-                text = "Welcome to PingPals!",
-                style = MaterialTheme.typography.headlineMedium,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Instant Connections, Seamlessly Simplified!",
-                style = MaterialTheme.typography.bodyLarge,
-                color = Color.Black
-            )
+    AppNavigator(navController = navController, viewModel.navActions)
+
+    state.initialRoute?.let {
+        NavHost(navController = navController, startDestination = state.initialRoute!!) {
+            slideComposable(AppDestinations.intro.path) {
+                IntroScreen()
+            }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun WelcomeScreenPreview() {
-    PingPalsTheme {
-        WelcomeScreen()
     }
 }
